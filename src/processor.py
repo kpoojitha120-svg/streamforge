@@ -1,7 +1,16 @@
 import json
-from datetime import datetime
+from collections import defaultdict, deque
+from datetime import datetime, timedelta
+
 from confluent_kafka import Consumer
-from config.settings import KAFKA_BOOTSTRAP_SERVERS, KAFKA_TOPIC, KAFKA_GROUP_ID, TEMPERATURE_MIN
+
+from config.settings import (
+    KAFKA_BOOTSTRAP_SERVERS,
+    KAFKA_TOPIC,
+    KAFKA_GROUP_ID,
+    TEMPERATURE_MIN,
+    WINDOW_SECONDS,
+)
 
 consumer = Consumer({
     "bootstrap.servers": KAFKA_BOOTSTRAP_SERVERS,
@@ -9,32 +18,50 @@ consumer = Consumer({
     "auto.offset.reset": "earliest",
 })
 
+# Store recent events separately for each truck
+truck_events = defaultdict(deque)
+
+
 def process_message(message):
     data = json.loads(message.value().decode("utf-8"))
 
+    # Filter
     if data["temperature"] <= TEMPERATURE_MIN:
         return
 
-    processed_event = {
-        "truck_id": data["truck_id"],
-        "temperature": data["temperature"],
-        "speed": data["speed"],
-        "timestamp": data["timestamp"],
-    }
-
     event_time = datetime.fromisoformat(
-        processed_event["timestamp"].replace("Z", "+00:00")
+        data["timestamp"].replace("Z", "+00:00")
     )
 
+    truck_id = data["truck_id"]
+    temperature = data["temperature"]
+
+    events = truck_events[truck_id]
+    events.append((event_time, temperature))
+
+    # Keep only the latest 5 minutes
+    window_start = event_time - timedelta(seconds=WINDOW_SECONDS)
+
+    while events and events[0][0] < window_start:
+        events.popleft()
+
+    # Calculate rolling average
+    average_temperature = sum(
+        temp for _, temp in events
+    ) / len(events)
+
     print(
-        f"Processed | {processed_event['truck_id']} | "
-        f"Temp: {processed_event['temperature']}°C | "
-        f"Speed: {processed_event['speed']} km/h | "
+        f"Processed | {truck_id} | "
+        f"Temp: {temperature}°C | "
+        f"Speed: {data['speed']} km/h | "
+        f"5-min Avg Temp: {average_temperature:.2f}°C | "
         f"Time: {event_time}"
     )
 
+
 def main():
     consumer.subscribe([KAFKA_TOPIC])
+
     print("StreamForge processor started.")
 
     try:
@@ -55,6 +82,7 @@ def main():
 
     finally:
         consumer.close()
+
 
 if __name__ == "__main__":
     main()
