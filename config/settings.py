@@ -1,0 +1,9 @@
+KAFKA_BOOTSTRAP_SERVERS = "localhost:9092"
+KAFKA_TOPIC = "truck-telemetry"
+KAFKA_GROUP_ID = "streamforge-workers"
+
+WINDOW_SECONDS = 300
+TEMPERATURE_MIN = 0.0
+
+API_HOST = "0.0.0.0"
+API_PORT = 8000
