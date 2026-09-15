@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StreamForge Dashboard</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            min-height: 100vh;
+        }
+
+        header {
+            padding: 25px 40px;
+            background: #1e293b;
+            border-bottom: 1px solid #334155;
+        }
+
+        header h1 {
+            font-size: 30px;
+            margin-bottom: 6px;
+        }
+
+        header p {
+            color: #94a3b8;
+        }
+
+        .container {
+            padding: 30px 40px;
+            max-width: 1400px;
+            margin: auto;
+        }
+
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .system-status {
+            padding: 10px 18px;
+            border-radius: 20px;
+            background: #14532d;
+            color: #bbf7d0;
+            font-weight: bold;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        .card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 14px;
+            padding: 24px;
+            min-height: 150px;
+        }
+
+        .card h3 {
+            color: #94a3b8;
+            font-size: 15px;
+            margin-bottom: 15px;
+        }
+
+        .value {
+            font-size: 34px;
+            font-weight: bold;
+        }
+
+        .unit {
+            color: #94a3b8;
+            font-size: 16px;
+            margin-left: 5px;
+        }
+
+        .workers {
+            margin-top: 25px;
+        }
+
+        .workers h2 {
+            margin-bottom: 15px;
+        }
+
+        .worker-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        .worker {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 14px;
+            padding: 20px;
+        }
+
+        .worker-title {
+            font-size: 18px;
+            margin-bottom: 12px;
+        }
+
+        .worker-status {
+            color: #86efac;
+            font-weight: bold;
+        }
+
+        footer {
+            text-align: center;
+            color: #64748b;
+            padding: 30px;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 900px) {
+            .cards,
+            .worker-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .container {
+                padding: 20px;
+            }
+
+            header {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h1>StreamForge</h1>
+    <p>Distributed Python Event Processor</p>
+</header>
+
+<div class="container">
+
+    <div class="status-bar">
+        <h2>Real-Time Monitoring</h2>
+        <div class="system-status" id="systemStatus">
+            CONNECTING...
+        </div>
+    </div>
+
+    <div class="cards">
+
+        <div class="card">
+            <h3>🌡️ Temperature</h3>
+            <div class="value">
+                <span id="temperature">0</span>
+                <span class="unit">°C</span>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>🚚 Speed</h3>
+            <div class="value">
+                <span id="speed">0</span>
+                <span class="unit">km/h</span>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>📊 5-Min Rolling Average</h3>
+            <div class="value">
+                <span id="rollingAverage">0</span>
+                <span class="unit">°C</span>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>⚡ Events / Second</h3>
+            <div class="value">
+                <span id="eventsPerSecond">0</span>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>⏱️ Processing Lag</h3>
+            <div class="value">
+                <span id="processingLag">0</span>
+                <span class="unit">ms</span>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>🔄 Worker Status</h3>
+            <div class="value" style="font-size: 24px;">
+                <span id="workerStatus">RUNNING</span>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="workers">
+
+        <h2>Worker Monitoring</h2>
+
+        <div class="worker-grid">
+
+            <div class="worker">
+                <div class="worker-title">Worker 1</div>
+                <div class="worker-status" id="worker1">● RUNNING</div>
+            </div>
+
+            <div class="worker">
+                <div class="worker-title">Worker 2</div>
+                <div class="worker-status" id="worker2">● NOT RUNNING</div>
+            </div>
+
+            <div class="worker">
+                <div class="worker-title">Worker 3</div>
+                <div class="worker-status" id="worker3">● NOT RUNNING</div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<footer>
+    StreamForge • Kafka • Python Stream Processing • FastAPI
+</footer>
+
+<script>
+
+async function updateDashboard() {
+
+    try {
+
+        const response = await fetch("http://localhost:8000/api/status");
+
+        if (!response.ok) {
+            throw new Error("API unavailable");
+        }
+
+        const data = await response.json();
+
+        document.getElementById("temperature").textContent =
+            Number(data.temperature || 0).toFixed(2);
+
+        document.getElementById("speed").textContent =
+            Number(data.speed || 0).toFixed(2);
+
+        document.getElementById("rollingAverage").textContent =
+            Number(data.rolling_average || 0).toFixed(2);
+
+        document.getElementById("eventsPerSecond").textContent =
+            Number(data.events_per_second || 0).toFixed(2);
+
+        document.getElementById("processingLag").textContent =
+            Number(data.processing_lag || 0).toFixed(2);
+
+        document.getElementById("workerStatus").textContent =
+            data.worker_status || "UNKNOWN";
+
+        document.getElementById("systemStatus").textContent =
+            "API CONNECTED";
+
+    } catch (error) {
+
+        document.getElementById("systemStatus").textContent =
+            "API OFFLINE";
+
+        console.log("Dashboard API error:", error);
+    }
+}
+
+updateDashboard();
+
+setInterval(updateDashboard, 2000);
+
+</script>
+
+</body>
+</html>
