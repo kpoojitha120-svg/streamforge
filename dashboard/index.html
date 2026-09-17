@@ -138,6 +138,39 @@
                 padding: 20px;
             }
         }
+    
+        .charts {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-top: 25px;
+        }
+
+        .chart-card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 14px;
+            padding: 20px;
+        }
+
+        .chart-card h3 {
+            color: #94a3b8;
+            margin-bottom: 15px;
+        }
+
+        canvas {
+            width: 100%;
+            height: 250px;
+            background: #0f172a;
+            border-radius: 8px;
+        }
+
+        @media (max-width: 900px) {
+            .charts {
+                grid-template-columns: 1fr;
+            }
+        }
+
     </style>
 </head>
 
@@ -234,6 +267,29 @@
 
 </div>
 
+
+    <div class="charts">
+        <div class="chart-card">
+            <h3>🌡️ Temperature Trend</h3>
+            <canvas id="temperatureChart"></canvas>
+        </div>
+
+        <div class="chart-card">
+            <h3>📊 5-Min Rolling Average</h3>
+            <canvas id="averageChart"></canvas>
+        </div>
+
+        <div class="chart-card">
+            <h3>⚡ Events / Second</h3>
+            <canvas id="eventsChart"></canvas>
+        </div>
+
+        <div class="chart-card">
+            <h3>⏱️ Processing Lag</h3>
+            <canvas id="lagChart"></canvas>
+        </div>
+    </div>
+
 <footer>
     StreamForge • Kafka • Python Stream Processing • FastAPI
 </footer>
@@ -286,6 +342,133 @@ updateDashboard();
 
 setInterval(updateDashboard, 2000);
 
+</script>
+
+
+<script>
+function drawChart(canvasId, values, label, unit) {
+    const canvas = document.getElementById(canvasId);
+    const ctx = canvas.getContext("2d");
+
+    const width = canvas.clientWidth;
+    const height = 250;
+    const ratio = window.devicePixelRatio || 1;
+
+    canvas.width = width * ratio;
+    canvas.height = height * ratio;
+    ctx.scale(ratio, ratio);
+
+    ctx.clearRect(0, 0, width, height);
+
+    if (!values || values.length === 0) {
+        ctx.fillStyle = "#64748b";
+        ctx.font = "16px Arial";
+        ctx.fillText("Waiting for data...", 20, 40);
+        return;
+    }
+
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const range = max - min || 1;
+
+    ctx.strokeStyle = "#475569";
+    ctx.lineWidth = 1;
+
+    for (let i = 0; i < 5; i++) {
+        const y = 20 + i * 50;
+        ctx.beginPath();
+        ctx.moveTo(10, y);
+        ctx.lineTo(width - 10, y);
+        ctx.stroke();
+    }
+
+    ctx.beginPath();
+
+    values.forEach((value, index) => {
+        const x = 15 + (index / Math.max(values.length - 1, 1)) * (width - 30);
+        const y = 220 - ((value - min) / range) * 190;
+
+        if (index === 0) {
+            ctx.moveTo(x, y);
+        } else {
+            ctx.lineTo(x, y);
+        }
+    });
+
+    ctx.strokeStyle = "#38bdf8";
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    ctx.fillStyle = "#e2e8f0";
+    ctx.font = "13px Arial";
+    ctx.fillText(label + " (" + unit + ")", 15, 15);
+}
+
+async function updateDashboard() {
+    try {
+        const response = await fetch("http://localhost:8000/api/status");
+        const data = await response.json();
+
+        document.getElementById("temperature").textContent =
+            Number(data.temperature).toFixed(2);
+
+        document.getElementById("speed").textContent =
+            Number(data.speed).toFixed(2);
+
+        document.getElementById("rollingAverage").textContent =
+            Number(data.rolling_average).toFixed(2);
+
+        document.getElementById("eventsPerSecond").textContent =
+            Number(data.events_per_second).toFixed(2);
+
+        document.getElementById("processingLag").textContent =
+            Number(data.processing_lag * 1000).toFixed(2);
+
+        document.getElementById("workerStatus").textContent =
+            data.worker_status;
+
+        document.getElementById("systemStatus").textContent =
+            "API CONNECTED";
+
+        const history = data.history || {};
+
+        drawChart(
+            "temperatureChart",
+            history.temperatures || [],
+            "Temperature",
+            "°C"
+        );
+
+        drawChart(
+            "averageChart",
+            history.rolling_averages || [],
+            "Rolling Average",
+            "°C"
+        );
+
+        drawChart(
+            "eventsChart",
+            history.events_per_second || [],
+            "Events/sec",
+            "events/s"
+        );
+
+        drawChart(
+            "lagChart",
+            history.processing_lag || [],
+            "Processing Lag",
+            "seconds"
+        );
+
+    } catch (error) {
+        document.getElementById("systemStatus").textContent =
+            "API DISCONNECTED";
+        console.error(error);
+    }
+}
+
+updateDashboard();
+setInterval(updateDashboard, 2000);
 </script>
 
 </body>
