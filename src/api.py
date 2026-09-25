@@ -41,7 +41,7 @@ def readiness_check():
 
 @app.get("/health")
 def health_check():
-    return {"status": "healthy", "service": "StreamForge API"}
+    return {"status": "healthy", "service": "StreamForge API", "uptime": "active"}
 
 
 @app.get("/api/worker")
