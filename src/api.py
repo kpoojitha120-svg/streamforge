@@ -38,7 +38,7 @@ def get_worker():
     return {"worker_id": status["worker_id"], "worker_status": status["worker_status"]}
 
 
-@app.get("/api/status")
+@app.get("/api/status", response_model=None)
 def get_status():
     if os.path.exists(STATUS_FILE):
         try:
