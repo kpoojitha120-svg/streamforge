@@ -57,7 +57,7 @@ def write_status(data):
         "events_per_second": data["events_per_second"],
         "processing_lag": data["processing_lag"],
         "worker_status": "RUNNING",
-        "worker_id": "worker-1",
+        "worker_id": WORKER_ID,
         "updated_at": data["timestamp"],
         "history": history,
     }
