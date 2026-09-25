@@ -29,6 +29,11 @@ def root():
     }
 
 
+@app.get("/api/info")
+def project_info():
+    return {"project": "StreamForge", "version": API_VERSION, "service": "Distributed Event Processor"}
+
+
 @app.get("/health")
 def health_check():
     return {"status": "healthy", "service": "StreamForge API"}
