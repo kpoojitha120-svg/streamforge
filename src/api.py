@@ -32,6 +32,12 @@ def health_check():
     return {"status": "healthy", "service": "StreamForge API"}
 
 
+@app.get("/api/worker")
+def get_worker():
+    status = get_status()
+    return {"worker_id": status["worker_id"], "worker_status": status["worker_status"]}
+
+
 @app.get("/api/status")
 def get_status():
     if os.path.exists(STATUS_FILE):
@@ -58,6 +64,12 @@ def get_status():
             "processing_lag": []
         }
     }
+
+
+@app.get("/api/metrics-summary")
+def metrics_summary():
+    status = get_status()
+    return {"events_per_second": status["events_per_second"], "processing_lag": status["processing_lag"], "rolling_average": status["rolling_average"]}
 
 
 @app.get("/metrics")
