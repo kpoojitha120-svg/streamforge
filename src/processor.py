@@ -22,6 +22,7 @@ events_total_metric = Gauge("streamforge_events_total", "Current processed event
 processing_lag_metric = Gauge("streamforge_processing_lag_seconds", "Current processing lag in seconds")
 worker_status_metric = Gauge("streamforge_worker_status", "Worker status: 1=running, 0=stopped")
 worker_uptime_metric = Gauge("streamforge_worker_uptime_seconds", "Worker uptime in seconds")
+worker_last_poll_metric = Gauge("streamforge_worker_last_poll_timestamp", "Last Kafka poll timestamp")
 consumer = Consumer({
     "bootstrap.servers": KAFKA_BOOTSTRAP_SERVERS,
     "group.id": KAFKA_GROUP_ID,
@@ -161,6 +162,7 @@ def main():
     try:
         while True:
             worker_uptime_metric.set(time.time() - worker_start_time)
+            worker_last_poll_metric.set(time.time())
             message = consumer.poll(1.0)
 
             if message is None:
