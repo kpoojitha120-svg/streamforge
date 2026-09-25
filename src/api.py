@@ -27,6 +27,11 @@ def root():
     }
 
 
+@app.get("/health")
+def health_check():
+    return {"status": "healthy", "service": "StreamForge API"}
+
+
 @app.get("/api/status")
 def get_status():
     if os.path.exists(STATUS_FILE):
