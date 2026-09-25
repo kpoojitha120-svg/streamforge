@@ -136,6 +136,7 @@ def main():
 
     print("StreamForge processor started.")
     print(f"Dashboard status file: {STATUS_FILE}")
+    worker_status_metric.set(1)
 
     try:
         while True:
@@ -154,6 +155,7 @@ def main():
         print("\nProcessor stopped.")
 
     finally:
+        worker_status_metric.set(0)
         consumer.close()
 
 
