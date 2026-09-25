@@ -16,6 +16,7 @@ from config.settings import (
 )
 events_processed = Counter("streamforge_events_processed_total", "Total processed events")
 events_filtered_metric = Counter("streamforge_events_filtered_total", "Total filtered events")
+events_late_metric = Counter("streamforge_late_events_total", "Total late-arriving events")
 events_per_second_metric = Gauge("streamforge_events_per_second", "Current events per second")
 events_total_metric = Gauge("streamforge_events_total", "Current processed event count")
 processing_lag_metric = Gauge("streamforge_processing_lag_seconds", "Current processing lag in seconds")
@@ -117,6 +118,9 @@ def process_message(message):
         0,
         (current_time - event_time).total_seconds()
     )
+
+    if processing_lag > WINDOW_SECONDS:
+        events_late_metric.inc()
     events_processed.inc()
     events_per_second_metric.set(events_per_second)
     processing_lag_metric.set(processing_lag)
