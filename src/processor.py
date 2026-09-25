@@ -20,7 +20,7 @@ processing_lag_metric = Gauge("streamforge_processing_lag_seconds", "Current pro
 worker_status_metric = Gauge("streamforge_worker_status", "Worker status: 1=running, 0=stopped")
 consumer = Consumer({
     "bootstrap.servers": KAFKA_BOOTSTRAP_SERVERS,
-    "group.id": "streamforge-worker-final",
+    "group.id": KAFKA_GROUP_ID,
     "auto.offset.reset": "earliest",
 })
 
