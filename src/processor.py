@@ -66,6 +66,15 @@ def write_status(data):
         json.dump(status, file, indent=2)
 
 
+def on_assign(consumer, partitions):
+    print(f"Worker {WORKER_ID} assigned partitions: {[p.partition for p in partitions]}")
+    consumer.assign(partitions)
+
+
+def on_revoke(consumer, partitions):
+    print(f"Worker {WORKER_ID} revoked partitions: {[p.partition for p in partitions]}")
+
+
 def process_message(message):
     data = json.loads(message.value().decode("utf-8"))
 
@@ -133,7 +142,7 @@ def process_message(message):
 
 
 def main():
-    consumer.subscribe([KAFKA_TOPIC])
+    consumer.subscribe([KAFKA_TOPIC], on_assign=on_assign, on_revoke=on_revoke)
 
     print(f"StreamForge processor started | Worker: {WORKER_ID}")
     print(f"Worker ID: {WORKER_ID}")
