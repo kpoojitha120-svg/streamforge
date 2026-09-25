@@ -5,7 +5,7 @@ from collections import defaultdict, deque
 from datetime import datetime, timedelta, timezone
 
 from confluent_kafka import Consumer
-
+from prometheus_client import Counter, Gauge
 from config.settings import (
     KAFKA_BOOTSTRAP_SERVERS,
     KAFKA_TOPIC,
@@ -13,7 +13,10 @@ from config.settings import (
     TEMPERATURE_MIN,
     WINDOW_SECONDS,
 )
-
+events_processed = Counter("streamforge_events_processed_total", "Total processed events")
+events_per_second_metric = Gauge("streamforge_events_per_second", "Current events per second")
+processing_lag_metric = Gauge("streamforge_processing_lag_seconds", "Current processing lag in seconds")
+worker_status_metric = Gauge("streamforge_worker_status", "Worker status: 1=running, 0=stopped")
 consumer = Consumer({
     "bootstrap.servers": KAFKA_BOOTSTRAP_SERVERS,
     "group.id": "streamforge-worker-final",
@@ -101,6 +104,10 @@ def process_message(message):
         0,
         (current_time - event_time).total_seconds()
     )
+    events_processed.inc()
+    events_per_second_metric.set(events_per_second)
+    processing_lag_metric.set(processing_lag)
+
 
     dashboard_data = {
         "temperature": temperature,
