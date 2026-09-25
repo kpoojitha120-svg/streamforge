@@ -16,6 +16,7 @@ from config.settings import (
 )
 events_processed = Counter("streamforge_events_processed_total", "Total processed events")
 events_per_second_metric = Gauge("streamforge_events_per_second", "Current events per second")
+events_total_metric = Gauge("streamforge_events_total", "Current processed event count")
 processing_lag_metric = Gauge("streamforge_processing_lag_seconds", "Current processing lag in seconds")
 worker_status_metric = Gauge("streamforge_worker_status", "Worker status: 1=running, 0=stopped")
 consumer = Consumer({
