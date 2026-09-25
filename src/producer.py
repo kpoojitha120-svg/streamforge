@@ -48,5 +48,6 @@ def main():
         time.sleep(1)
 
 
+    producer.flush()
 if __name__ == "__main__":
     main()
