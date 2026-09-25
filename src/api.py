@@ -8,7 +8,7 @@ from prometheus_client import generate_latest
 
 API_VERSION = "1.0"
 
-app = FastAPI(title="StreamForge API", version=API_VERSION)
+app = FastAPI(title="StreamForge API", version=API_VERSION, description="Live telemetry processing API")
 
 app.add_middleware(
     CORSMiddleware,
