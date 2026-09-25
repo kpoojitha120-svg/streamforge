@@ -34,6 +34,11 @@ def project_info():
     return {"project": "StreamForge", "version": API_VERSION, "service": "Distributed Event Processor"}
 
 
+@app.get("/ready")
+def readiness_check():
+    return {"ready": True, "service": "StreamForge API"}
+
+
 @app.get("/health")
 def health_check():
     return {"status": "healthy", "service": "StreamForge API"}
