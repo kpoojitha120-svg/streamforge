@@ -10,6 +10,7 @@ from config.settings import (
     KAFKA_BOOTSTRAP_SERVERS,
     KAFKA_TOPIC,
     KAFKA_GROUP_ID,
+    WORKER_ID,
     TEMPERATURE_MIN,
     WINDOW_SECONDS,
 )

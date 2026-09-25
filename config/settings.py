@@ -1,6 +1,7 @@
 KAFKA_BOOTSTRAP_SERVERS = "localhost:9092"
 KAFKA_TOPIC = "truck-telemetry"
 KAFKA_GROUP_ID = "streamforge-workers"
+WORKER_ID = "worker-1"
 
 WINDOW_SECONDS = 300
 TEMPERATURE_MIN = 0.0
