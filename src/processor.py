@@ -136,6 +136,7 @@ def main():
     consumer.subscribe([KAFKA_TOPIC])
 
     print("StreamForge processor started.")
+    print(f"Worker ID: {WORKER_ID}")
     print(f"Dashboard status file: {STATUS_FILE}")
     worker_status_metric.set(1)
 
