@@ -6,7 +6,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from prometheus_client import generate_latest
 
-app = FastAPI(title="StreamForge API")
+API_VERSION = "1.0"
+
+app = FastAPI(title="StreamForge API", version=API_VERSION)
 
 app.add_middleware(
     CORSMiddleware,
