@@ -23,6 +23,7 @@ processing_lag_metric = Gauge("streamforge_processing_lag_seconds", "Current pro
 worker_status_metric = Gauge("streamforge_worker_status", "Worker status: 1=running, 0=stopped")
 worker_uptime_metric = Gauge("streamforge_worker_uptime_seconds", "Worker uptime in seconds")
 worker_last_poll_metric = Gauge("streamforge_worker_last_poll_timestamp", "Last Kafka poll timestamp")
+messages_polled_metric = Counter("streamforge_messages_polled_total", "Total Kafka messages polled")
 consumer = Consumer({
     "bootstrap.servers": KAFKA_BOOTSTRAP_SERVERS,
     "group.id": KAFKA_GROUP_ID,
@@ -167,6 +168,8 @@ def main():
 
             if message is None:
                 continue
+
+            messages_polled_metric.inc()
 
             if message.error():
                 print(f"Kafka error: {message.error()}")
