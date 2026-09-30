@@ -43,6 +43,7 @@ history = {
 }
 
 STATUS_FILE = "/home/lenovoc/StreamForge/data/latest_status.json"
+assigned_partitions = []
 
 
 def write_status(data):
@@ -65,6 +66,7 @@ def write_status(data):
         "processing_lag": data["processing_lag"],
         "worker_status": "RUNNING",
         "worker_id": WORKER_ID,
+        "assigned_partitions": assigned_partitions,
         "updated_at": data["timestamp"],
         "history": history,
     }
@@ -74,7 +76,9 @@ def write_status(data):
 
 
 def on_assign(consumer, partitions):
-    print(f"Worker {WORKER_ID} assigned partitions: {[p.partition for p in partitions]}")
+    global assigned_partitions
+    assigned_partitions = [p.partition for p in partitions]
+    print(f"Worker {WORKER_ID} assigned partitions: {assigned_partitions}")
     consumer.assign(partitions)
 
 
