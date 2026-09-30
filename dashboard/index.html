@@ -290,6 +290,21 @@
         </div>
     </div>
 
+<section id="topologySection" style="margin: 30px 0;">
+    <h2>🔗 StreamForge Live Topology</h2>
+    <div id="topologyView" style="
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 20px;
+        border: 1px solid #334155;
+        border-radius: 12px;
+        background: #0f172a;
+    ">
+        Loading topology...
+    </div>
+</section>
+
 <footer>
     StreamForge • Kafka • Python Stream Processing • FastAPI
 </footer>
@@ -328,6 +343,30 @@ async function updateDashboard() {
 
         document.getElementById("systemStatus").textContent =
             "API CONNECTED";
+
+        const topologyResponse =
+            await fetch("http://localhost:8000/api/topology");
+
+        if (topologyResponse.ok) {
+            const topology = await topologyResponse.json();
+            const view = document.getElementById("topologyView");
+
+            view.innerHTML = topology.nodes.map(node =>
+                `<div style="
+                    padding: 12px 16px;
+                    border: 1px solid #38bdf8;
+                    border-radius: 8px;
+                    background: #1e293b;
+                    color: #e2e8f0;
+                    min-width: 140px;
+                    text-align: center;
+                ">
+                    <strong>${node.label}</strong>
+                    <br>
+                    <small>${node.type}</small>
+                </div>`
+            ).join("");
+        }
 
     } catch (error) {
 
@@ -429,6 +468,30 @@ async function updateDashboard() {
 
         document.getElementById("systemStatus").textContent =
             "API CONNECTED";
+
+        const topologyResponse =
+            await fetch("http://localhost:8000/api/topology");
+
+        if (topologyResponse.ok) {
+            const topology = await topologyResponse.json();
+            const view = document.getElementById("topologyView");
+
+            view.innerHTML = topology.nodes.map(node =>
+                `<div style="
+                    padding: 12px 16px;
+                    border: 1px solid #38bdf8;
+                    border-radius: 8px;
+                    background: #1e293b;
+                    color: #e2e8f0;
+                    min-width: 140px;
+                    text-align: center;
+                ">
+                    <strong>${node.label}</strong>
+                    <br>
+                    <small>${node.type}</small>
+                </div>`
+            ).join("");
+        }
 
         const history = data.history || {};
 
