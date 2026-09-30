@@ -95,6 +95,31 @@ def metrics_summary():
     return {"events_per_second": status["events_per_second"], "processing_lag": status["processing_lag"], "rolling_average": status["rolling_average"]}
 
 
+@app.get("/api/topology")
+def get_topology():
+    status = get_status()
+    return {
+        "project": "StreamForge",
+        "pipeline": [
+            "Kafka",
+            "Telemetry Producer",
+            "Python Processor",
+            "Temperature Filter",
+            "Event Mapping",
+            "5-Minute Window",
+            "RocksDB State",
+            "Prometheus",
+            "FastAPI",
+            "Dashboard",
+        ],
+        "worker": {
+            "id": status["worker_id"],
+            "status": status["worker_status"],
+            "partitions": status.get("assigned_partitions", []),
+        },
+    }
+
+
 @app.get("/metrics")
 def metrics():
     return Response(
