@@ -68,6 +68,20 @@ def get_partitions():
     }
 
 
+@app.get("/api/worker/summary")
+def worker_summary():
+    status = get_status()
+    return {
+        "worker_id": status["worker_id"],
+        "status": status["worker_status"],
+        "partitions": status.get("assigned_partitions", []),
+        "events_per_second": status["events_per_second"],
+        "processing_lag": status["processing_lag"],
+        "rolling_average": status["rolling_average"],
+        "last_updated": status["updated_at"],
+    }
+
+
 @app.get("/api/status", response_model=None)
 def get_status():
     if os.path.exists(STATUS_FILE):
