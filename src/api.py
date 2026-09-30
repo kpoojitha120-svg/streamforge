@@ -141,6 +141,19 @@ def get_topology():
     }
 
 
+@app.get("/api/dashboard/metrics")
+def dashboard_metrics():
+    status = get_status()
+    return {
+        "events_per_second": status["events_per_second"],
+        "processing_lag": status["processing_lag"],
+        "rolling_average": status["rolling_average"],
+        "temperature": status["temperature"],
+        "speed": status["speed"],
+        "updated_at": status["updated_at"],
+    }
+
+
 @app.get("/metrics")
 def metrics():
     return Response(
