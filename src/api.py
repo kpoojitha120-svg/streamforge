@@ -47,7 +47,14 @@ def health_check():
 @app.get("/api/worker")
 def get_worker():
     status = get_status()
-    return {"worker_id": status["worker_id"], "worker_status": status["worker_status"]}
+    return {
+        "worker_id": status["worker_id"],
+        "worker_status": status["worker_status"],
+        "assigned_partitions": status.get("assigned_partitions", []),
+        "events_per_second": status["events_per_second"],
+        "processing_lag": status["processing_lag"],
+        "updated_at": status["updated_at"],
+    }
 
 
 @app.get("/api/partitions")
