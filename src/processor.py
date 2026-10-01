@@ -6,6 +6,8 @@ from datetime import datetime, timedelta, timezone
 
 from confluent_kafka import Consumer
 from prometheus_client import Counter, Gauge
+from rocksdict import Rdict
+
 from config.settings import (
     KAFKA_BOOTSTRAP_SERVERS,
     KAFKA_TOPIC,
@@ -14,17 +16,56 @@ from config.settings import (
     TEMPERATURE_MIN,
     WINDOW_SECONDS,
 )
-events_processed = Counter("streamforge_events_processed_total", "Total processed events")
-events_filtered_metric = Counter("streamforge_events_filtered_total", "Total filtered events")
-events_late_metric = Counter("streamforge_late_events_total", "Total late-arriving events")
-events_per_second_metric = Gauge("streamforge_events_per_second", "Current events per second")
-events_total_metric = Gauge("streamforge_events_total", "Current processed event count")
-processing_lag_metric = Gauge("streamforge_processing_lag_seconds", "Current processing lag in seconds")
-worker_status_metric = Gauge("streamforge_worker_status", "Worker status: 1=running, 0=stopped")
-worker_uptime_metric = Gauge("streamforge_worker_uptime_seconds", "Worker uptime in seconds")
-worker_last_poll_metric = Gauge("streamforge_worker_last_poll_timestamp", "Last Kafka poll timestamp")
-messages_polled_metric = Counter("streamforge_messages_polled_total", "Total Kafka messages polled")
-kafka_errors_metric = Counter("streamforge_kafka_errors_total", "Total Kafka consumer errors")
+
+events_processed = Counter(
+    "streamforge_events_processed_total",
+    "Total processed events",
+)
+events_filtered_metric = Counter(
+    "streamforge_events_filtered_total",
+    "Total filtered events",
+)
+events_late_metric = Counter(
+    "streamforge_late_events_total",
+    "Total late-arriving events",
+)
+events_per_second_metric = Gauge(
+    "streamforge_events_per_second",
+    "Current events per second",
+)
+events_total_metric = Gauge(
+    "streamforge_events_total",
+    "Current processed event count",
+)
+processing_lag_metric = Gauge(
+    "streamforge_processing_lag_seconds",
+    "Current processing lag in seconds",
+)
+worker_status_metric = Gauge(
+    "streamforge_worker_status",
+    "Worker status: 1=running, 0=stopped",
+)
+worker_uptime_metric = Gauge(
+    "streamforge_worker_uptime_seconds",
+    "Worker uptime in seconds",
+)
+worker_last_poll_metric = Gauge(
+    "streamforge_worker_last_poll_timestamp",
+    "Last Kafka poll timestamp",
+)
+messages_polled_metric = Counter(
+    "streamforge_messages_polled_total",
+    "Total Kafka messages polled",
+)
+kafka_errors_metric = Counter(
+    "streamforge_kafka_errors_total",
+    "Total Kafka consumer errors",
+)
+state_persisted_metric = Gauge(
+    "streamforge_state_persisted_trucks",
+    "Number of truck states persisted in RocksDB",
+)
+
 consumer = Consumer({
     "bootstrap.servers": KAFKA_BOOTSTRAP_SERVERS,
     "group.id": KAFKA_GROUP_ID,
@@ -43,7 +84,70 @@ history = {
 }
 
 STATUS_FILE = "/home/lenovoc/StreamForge/data/latest_status.json"
+STATE_DIR = "/home/lenovoc/StreamForge/data/rocksdb"
+STATE_TRUCK_IDS_KEY = "__truck_ids__"
+
 assigned_partitions = []
+
+os.makedirs(STATE_DIR, exist_ok=True)
+state_db = Rdict(STATE_DIR)
+
+
+def load_persistent_state():
+    """Restore truck event windows from RocksDB."""
+    try:
+        raw_ids = state_db.get(STATE_TRUCK_IDS_KEY)
+
+        if not raw_ids:
+            print("RocksDB state: no previous truck state found.")
+            return
+
+        truck_ids = json.loads(raw_ids)
+
+        restored = 0
+
+        for truck_id in truck_ids:
+            raw_events = state_db.get(f"truck:{truck_id}")
+
+            if not raw_events:
+                continue
+
+            events = json.loads(raw_events)
+
+            truck_events[truck_id] = deque(
+                (
+                    datetime.fromisoformat(timestamp),
+                    temperature,
+                )
+                for timestamp, temperature in events
+            )
+
+            restored += 1
+
+        state_persisted_metric.set(restored)
+        print(f"RocksDB state restored: {restored} truck(s)")
+
+    except Exception as exc:
+        print(f"RocksDB state restore warning: {exc}")
+
+
+def persist_truck_state(truck_id):
+    """Persist one truck's current rolling-window state."""
+    events = truck_events[truck_id]
+
+    serialized_events = [
+        [event_time.isoformat(), temperature]
+        for event_time, temperature in events
+    ]
+
+    state_db[f"truck:{truck_id}"] = json.dumps(serialized_events)
+
+    truck_ids = sorted(truck_events.keys())
+    state_db[STATE_TRUCK_IDS_KEY] = json.dumps(truck_ids)
+
+    state_db.flush()
+
+    state_persisted_metric.set(len(truck_ids))
 
 
 def write_status(data):
@@ -77,13 +181,22 @@ def write_status(data):
 
 def on_assign(consumer, partitions):
     global assigned_partitions
+
     assigned_partitions = [p.partition for p in partitions]
-    print(f"Worker {WORKER_ID} assigned partitions: {assigned_partitions}")
+
+    print(
+        f"Worker {WORKER_ID} assigned partitions: "
+        f"{assigned_partitions}"
+    )
+
     consumer.assign(partitions)
 
 
 def on_revoke(consumer, partitions):
-    print(f"Worker {WORKER_ID} revoked partitions: {[p.partition for p in partitions]}")
+    print(
+        f"Worker {WORKER_ID} revoked partitions: "
+        f"{[p.partition for p in partitions]}"
+    )
 
 
 def process_message(message):
@@ -112,6 +225,8 @@ def process_message(message):
         temp for _, temp in events
     ) / len(events)
 
+    persist_truck_state(truck_id)
+
     now = time.time()
     processed_times.append(now)
 
@@ -124,15 +239,16 @@ def process_message(message):
 
     processing_lag = max(
         0,
-        (current_time - event_time).total_seconds()
+        (current_time - event_time).total_seconds(),
     )
 
     if processing_lag > WINDOW_SECONDS:
         events_late_metric.inc()
+
     events_processed.inc()
+    events_total_metric.inc()
     events_per_second_metric.set(events_per_second)
     processing_lag_metric.set(processing_lag)
-
 
     dashboard_data = {
         "temperature": temperature,
@@ -157,18 +273,31 @@ def process_message(message):
 
 
 def main():
-    consumer.subscribe([KAFKA_TOPIC], on_assign=on_assign, on_revoke=on_revoke)
+    load_persistent_state()
 
-    print(f"StreamForge processor started | Worker: {WORKER_ID}")
+    consumer.subscribe(
+        [KAFKA_TOPIC],
+        on_assign=on_assign,
+        on_revoke=on_revoke,
+    )
+
+    print(
+        f"StreamForge processor started | Worker: {WORKER_ID}"
+    )
     print(f"Worker ID: {WORKER_ID}")
     print(f"Dashboard status file: {STATUS_FILE}")
+    print(f"RocksDB state directory: {STATE_DIR}")
+
     worker_status_metric.set(1)
     worker_start_time = time.time()
 
     try:
         while True:
-            worker_uptime_metric.set(time.time() - worker_start_time)
+            worker_uptime_metric.set(
+                time.time() - worker_start_time
+            )
             worker_last_poll_metric.set(time.time())
+
             message = consumer.poll(1.0)
 
             if message is None:
@@ -188,6 +317,8 @@ def main():
 
     finally:
         worker_status_metric.set(0)
+        state_db.flush()
+        state_db.close()
         consumer.close()
 
 
