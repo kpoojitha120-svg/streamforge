@@ -4,13 +4,14 @@ import time
 from collections import defaultdict, deque
 from datetime import datetime, timedelta, timezone
 
-from confluent_kafka import Consumer
+from confluent_kafka import Consumer, Producer
 from prometheus_client import Counter, Gauge
 from rocksdict import Rdict
 
 from config.settings import (
     KAFKA_BOOTSTRAP_SERVERS,
     KAFKA_TOPIC,
+    KAFKA_STATE_CHANGELOG_TOPIC,
     KAFKA_GROUP_ID,
     WORKER_ID,
     TEMPERATURE_MIN,
@@ -65,6 +66,10 @@ state_persisted_metric = Gauge(
     "streamforge_state_persisted_trucks",
     "Number of truck states persisted in RocksDB",
 )
+
+changelog_producer = Producer({
+    "bootstrap.servers": KAFKA_BOOTSTRAP_SERVERS,
+})
 
 consumer = Consumer({
     "bootstrap.servers": KAFKA_BOOTSTRAP_SERVERS,
@@ -146,6 +151,17 @@ def persist_truck_state(truck_id):
     state_db[STATE_TRUCK_IDS_KEY] = json.dumps(truck_ids)
 
     state_db.flush()
+
+    changelog_producer.produce(
+        KAFKA_STATE_CHANGELOG_TOPIC,
+        key=truck_id,
+        value=json.dumps({
+            "truck_id": truck_id,
+            "events": serialized_events,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }).encode("utf-8"),
+    )
+    changelog_producer.poll(0)
 
     state_persisted_metric.set(len(truck_ids))
 

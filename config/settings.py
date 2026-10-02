@@ -1,5 +1,6 @@
 KAFKA_BOOTSTRAP_SERVERS = "localhost:9092"
 KAFKA_TOPIC = "truck-telemetry"
+KAFKA_STATE_CHANGELOG_TOPIC = "streamforge-state-changelog"
 KAFKA_GROUP_ID = "streamforge-workers"
 WORKER_ID = "worker-1"
 
