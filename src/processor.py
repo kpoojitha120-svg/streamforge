@@ -216,18 +216,36 @@ def on_revoke(consumer, partitions):
 
 
 def process_message(message):
-    data = json.loads(message.value().decode("utf-8"))
-
-    if data["temperature"] <= TEMPERATURE_MIN:
-        events_filtered_metric.inc()
+    try:
+        data = json.loads(message.value().decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        print(f"Invalid telemetry JSON: {exc}")
+        kafka_errors_metric.inc()
         return
 
-    event_time = datetime.fromisoformat(
-        data["timestamp"].replace("Z", "+00:00")
-    )
+    required_fields = ("truck_id", "temperature", "speed", "timestamp")
+    if any(field not in data for field in required_fields):
+        print("Invalid telemetry: missing required field")
+        kafka_errors_metric.inc()
+        return
 
-    truck_id = data["truck_id"]
-    temperature = data["temperature"]
+    try:
+        temperature = float(data["temperature"])
+        speed = float(data["speed"])
+        event_time = datetime.fromisoformat(
+            str(data["timestamp"]).replace("Z", "+00:00")
+        )
+        truck_id = str(data["truck_id"]).strip()
+        if not truck_id:
+            raise ValueError("empty truck_id")
+    except (TypeError, ValueError) as exc:
+        print(f"Invalid telemetry values: {exc}")
+        kafka_errors_metric.inc()
+        return
+
+    if temperature <= TEMPERATURE_MIN:
+        events_filtered_metric.inc()
+        return
 
     events = truck_events[truck_id]
     events.append((event_time, temperature))
