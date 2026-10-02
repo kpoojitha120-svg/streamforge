@@ -4,7 +4,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
-from prometheus_client import generate_latest
+from prometheus_client import generate_latest, Gauge
 
 API_VERSION = "1.0"
 
@@ -19,6 +19,12 @@ app.add_middleware(
 )
 
 STATUS_FILE = "/home/lenovoc/StreamForge/data/latest_status.json"
+
+streamforge_events_per_second = Gauge("streamforge_events_per_second", "Actual events processed per second")
+streamforge_processing_lag = Gauge("streamforge_processing_lag_seconds", "Actual processing lag in seconds")
+streamforge_rolling_average = Gauge("streamforge_rolling_average_temperature", "Actual rolling average temperature")
+streamforge_temperature = Gauge("streamforge_temperature", "Latest actual temperature")
+streamforge_worker_status = Gauge("streamforge_worker_status", "Worker status: 1=running, 0=not running")
 
 
 @app.get("/")
@@ -167,7 +173,10 @@ def dashboard_metrics():
 
 @app.get("/metrics")
 def metrics():
-    return Response(
-        generate_latest(),
-        media_type="text/plain"
-    )
+    status = get_status()
+    streamforge_events_per_second.set(status.get("events_per_second", 0))
+    streamforge_processing_lag.set(status.get("processing_lag", 0))
+    streamforge_rolling_average.set(status.get("rolling_average", 0))
+    streamforge_temperature.set(status.get("temperature", 0))
+    streamforge_worker_status.set(1 if status.get("worker_status") == "RUNNING" else 0)
+    return Response(generate_latest(), media_type="text/plain")
