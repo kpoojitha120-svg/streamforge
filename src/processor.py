@@ -42,6 +42,10 @@ processing_lag_metric = Gauge(
     "streamforge_processing_lag_seconds",
     "Current processing lag in seconds",
 )
+processing_latency_metric = Gauge(
+    "streamforge_processing_latency_seconds",
+    "Actual event processing latency in seconds",
+)
 worker_status_metric = Gauge(
     "streamforge_worker_status",
     "Worker status: 1=running, 0=stopped",
@@ -216,6 +220,7 @@ def on_revoke(consumer, partitions):
 
 
 def process_message(message):
+    processing_start = time.time()
     try:
         data = json.loads(message.value().decode("utf-8"))
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
@@ -283,6 +288,7 @@ def process_message(message):
     events_total_metric.inc()
     events_per_second_metric.set(events_per_second)
     processing_lag_metric.set(processing_lag)
+    processing_latency_metric.set(max(0, time.time() - processing_start))
 
     dashboard_data = {
         "temperature": temperature,
