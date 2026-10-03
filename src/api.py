@@ -25,6 +25,10 @@ streamforge_processing_lag = Gauge("streamforge_processing_lag_seconds", "Actual
 streamforge_rolling_average = Gauge("streamforge_rolling_average_temperature", "Actual rolling average temperature")
 streamforge_temperature = Gauge("streamforge_temperature", "Latest actual temperature")
 streamforge_worker_status = Gauge("streamforge_worker_status", "Worker status: 1=running, 0=not running")
+streamforge_processing_latency = Gauge(
+    "streamforge_processing_latency_seconds",
+    "Actual event processing latency in seconds",
+)
 
 
 @app.get("/")
@@ -179,4 +183,5 @@ def metrics():
     streamforge_rolling_average.set(status.get("rolling_average", 0))
     streamforge_temperature.set(status.get("temperature", 0))
     streamforge_worker_status.set(1 if status.get("worker_status") == "RUNNING" else 0)
+    streamforge_processing_latency.set(status.get("processing_latency", 0))
     return Response(generate_latest(), media_type="text/plain")
