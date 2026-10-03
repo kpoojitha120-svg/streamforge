@@ -188,6 +188,7 @@ def write_status(data):
         "rolling_average": data["rolling_average"],
         "events_per_second": data["events_per_second"],
         "processing_lag": data["processing_lag"],
+        "processing_latency": data.get("processing_latency", 0),
         "worker_status": "RUNNING",
         "worker_id": WORKER_ID,
         "assigned_partitions": assigned_partitions,
