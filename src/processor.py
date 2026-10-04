@@ -297,7 +297,7 @@ def process_message(message):
         "rolling_average": round(average_temperature, 2),
         "events_per_second": round(events_per_second, 2),
         "processing_lag": round(processing_lag, 3),
-        "processing_latency": round(processing_latency_metric._value.get(), 6),
+        "processing_latency": round(time.time() - processing_start, 6),
         "timestamp": event_time.isoformat(),
     }
 
