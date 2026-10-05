@@ -115,6 +115,7 @@ function App() {
     <div className="app">
       <header className="header">
         <div>
+          <div className="eyebrow">REAL-TIME STREAM PROCESSING</div>
           <h1>StreamForge</h1>
           <p>Distributed Python Event Processor</p>
         </div>
@@ -129,39 +130,95 @@ function App() {
         <div className="metric-card">
           <span>Worker</span>
           <strong>{status?.worker_id || '—'}</strong>
+          <small>Active processor</small>
         </div>
 
         <div className="metric-card">
           <span>Worker Status</span>
           <strong>{status?.worker_status || 'WAITING'}</strong>
+          <small>Runtime state</small>
         </div>
 
-        <div className="metric-card">
+        <div className="metric-card highlight">
           <span>Events / Sec</span>
           <strong>{status?.events_per_second ?? 0}</strong>
+          <small>Live throughput</small>
         </div>
 
         <div className="metric-card">
           <span>Processing Lag</span>
-          <strong>{status?.processing_lag ?? 0}s</strong>
+          <strong>
+            {Number(status?.processing_lag ?? 0).toFixed(2)}s
+          </strong>
+          <small>Event-time lag</small>
         </div>
 
         <div className="metric-card">
           <span>Partitions</span>
           <strong>{status?.assigned_partitions?.length ?? 0}</strong>
+          <small>
+            {status?.assigned_partitions?.join(', ') || 'None'}
+          </small>
+        </div>
+      </section>
+
+      <section className="analytics-grid">
+        <div className="analytics-card">
+          <span>Latest Temperature</span>
+          <strong>
+            {status?.temperature != null
+              ? `${Number(status.temperature).toFixed(2)}°C`
+              : '—'}
+          </strong>
+          <small>Latest telemetry reading</small>
+        </div>
+
+        <div className="analytics-card">
+          <span>Rolling Average</span>
+          <strong>
+            {status?.rolling_average != null
+              ? `${Number(status.rolling_average).toFixed(2)}°C`
+              : '—'}
+          </strong>
+          <small>5-minute event window</small>
+        </div>
+
+        <div className="analytics-card">
+          <span>Processing Latency</span>
+          <strong>
+            {status?.processing_latency != null
+              ? `${Number(status.processing_latency).toFixed(3)}s`
+              : '—'}
+          </strong>
+          <small>Processor execution time</small>
+        </div>
+
+        <div className="analytics-card">
+          <span>Last Updated</span>
+          <strong className="timestamp">
+            {status?.updated_at
+              ? new Date(status.updated_at).toLocaleTimeString()
+              : '—'}
+          </strong>
+          <small>Live API refresh</small>
         </div>
       </section>
 
       <section className="topology-card">
         <div className="section-heading">
           <div>
+            <div className="section-label">PIPELINE VISUALIZATION</div>
             <h2>Live Processing Topology</h2>
-            <p>Kafka → Processor → Window → State → Metrics → API → Dashboard</p>
+            <p>
+              Kafka → Processor → Window → State → Metrics → API → Dashboard
+            </p>
           </div>
 
           <div className="partition-info">
-            Active partitions:{' '}
-            {status?.assigned_partitions?.join(', ') || 'None'}
+            <span>Active partitions</span>
+            <strong>
+              {status?.assigned_partitions?.join(', ') || 'None'}
+            </strong>
           </div>
         </div>
 
@@ -183,6 +240,47 @@ function App() {
               Waiting for topology data from FastAPI...
             </div>
           )}
+        </div>
+      </section>
+
+      <section className="system-panel">
+        <div>
+          <div className="section-label">SYSTEM HEALTH</div>
+          <h2>StreamForge Runtime</h2>
+        </div>
+
+        <div className="health-items">
+          <div>
+            <span className="health-dot" />
+            <div>
+              <strong>Kafka Stream</strong>
+              <small>Telemetry ingestion active</small>
+            </div>
+          </div>
+
+          <div>
+            <span className="health-dot" />
+            <div>
+              <strong>State Store</strong>
+              <small>RocksDB persistence enabled</small>
+            </div>
+          </div>
+
+          <div>
+            <span className="health-dot" />
+            <div>
+              <strong>FastAPI</strong>
+              <small>Metrics and status API online</small>
+            </div>
+          </div>
+
+          <div>
+            <span className="health-dot" />
+            <div>
+              <strong>Dashboard</strong>
+              <small>Live monitoring connected</small>
+            </div>
+          </div>
         </div>
       </section>
 
