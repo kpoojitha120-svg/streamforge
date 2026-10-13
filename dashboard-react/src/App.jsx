@@ -27,6 +27,43 @@ const nodeTypes = {
   stream: StreamNode,
 }
 
+function LiveChart({ title, values, color = "#38bdf8", unit = "" }) {
+  const data = (Array.isArray(values) ? values : []).map(Number).filter(Number.isFinite).slice(-60)
+  const width = 600, height = 180, pad = 18
+  const min = data.length ? Math.min(...data) : 0
+  const max = data.length ? Math.max(...data) : 1
+  const range = max - min || 1
+  const points = data.map((v, i) => {
+    const x = pad + (data.length < 2 ? 0 : i * (width - 2 * pad) / (data.length - 1))
+    const y = height - pad - ((v - min) / range) * (height - 2 * pad)
+    return `${x},${y}`
+  }).join(" ")
+
+  return (
+    <div className="chart-card">
+      <div className="chart-heading">
+        <h3>{title}</h3>
+        <span className="chart-value" style={{ color }}>
+          {data.length ? `${data[data.length - 1].toFixed(2)}${unit}` : "—"}
+        </span>
+      </div>
+      {data.length >= 2 ? (
+        <div className="chart-wrap">
+          <svg className="live-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={title}>
+            {[0, 1, 2, 3].map(i => (
+              <line key={i} className="chart-grid" x1={pad} x2={width - pad}
+                y1={pad + i * (height - 2 * pad) / 3}
+                y2={pad + i * (height - 2 * pad) / 3} />
+            ))}
+            <polyline className="chart-line" points={points} style={{ stroke: color }} />
+          </svg>
+        </div>
+      ) : <div className="chart-empty">Waiting for live samples…</div>}
+      <div className="chart-footer">{data.length} real samples</div>
+    </div>
+  )
+}
+
 function App() {
   const [topology, setTopology] = useState(null)
   const [status, setStatus] = useState(null)
@@ -201,6 +238,16 @@ function App() {
               : '—'}
           </strong>
           <small>Live API refresh</small>
+        </div>
+      </section>
+
+      <section className="charts-section">
+        <h2>Live Telemetry Analytics</h2>
+        <div className="charts-grid">
+          <LiveChart title="Temperature" values={status?.history?.temperatures} unit="°C" />
+          <LiveChart title="5-Minute Rolling Average" values={status?.history?.rolling_averages} color="#a78bfa" unit="°C" />
+          <LiveChart title="Events per Second" values={status?.history?.events_per_second} color="#34d399" />
+          <LiveChart title="Processing Lag" values={status?.history?.processing_lag} color="#fbbf24" unit="s" />
         </div>
       </section>
 
